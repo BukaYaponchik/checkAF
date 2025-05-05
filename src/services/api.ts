@@ -5,12 +5,23 @@ import { type User, UserRole, type Task, type DailyReport, type LoginCredentials
 
 // Вспомогательные функции для работы с localStorage
 const getItem = <T>(key: string, defaultValue: T): T => {
-  const item = localStorage.getItem(key);
-  return item ? JSON.parse(item) : defaultValue;
+  try {
+    const item = localStorage.getItem(key);
+    console.log(`Чтение из localStorage: ключ=${key}, значение=${item ? 'существует' : 'не существует'}`);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error(`Ошибка при чтении из localStorage: ключ=${key}`, error);
+    return defaultValue;
+  }
 };
 
 const setItem = <T>(key: string, value: T): void => {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    console.log(`Запись в localStorage: ключ=${key}`, value);
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Ошибка при записи в localStorage: ключ=${key}`, error);
+  }
 };
 
 // Инициализация данных
@@ -150,7 +161,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     setTimeout(() => {
       const users = getItem<User[]>('users', []);
       const user = users.find(
-        (user) => user.username === credentials.username && user.password === credentials.password
+          (user) => user.username === credentials.username && user.password === credentials.password
       );
 
       if (!user) {

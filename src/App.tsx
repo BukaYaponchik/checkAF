@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/toaster';
 import SuperAdminDashboard from '@/pages/superadmin/SuperAdminDashboard';
 import UsersManagementPage from '@/pages/superadmin/UsersManagementPage';
 import TasksManagementPage from '@/pages/superadmin/TasksManagementPage';
+import AdminReportsPage from '@/pages/admin/ReportsPage';
 
 // Импорт страниц для администратора
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -19,6 +20,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard';
 // Импорт страниц для управляющего
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
 import DailyReportPage from '@/pages/manager/DailyReportPage';
+import ManagerReportsPage from '@/pages/manager/ReportsPage';
 
 function App() {
   useEffect(() => {
@@ -47,7 +49,8 @@ function App() {
               <Route path="/superadmin" element={<SuperAdminDashboard />} />
               <Route path="/superadmin/users" element={<UsersManagementPage />} />
               <Route path="/superadmin/tasks" element={<TasksManagementPage />} />
-              {/* Здесь можно добавить другие маршруты для главного администратора */}
+              <Route path="/superadmin/reports" element={<AdminReportsPage />} />
+              <Route path="/superadmin/reports/:reportId" element={<AdminReportsPage />} />
             </Route>
           </Route>
 
@@ -62,7 +65,8 @@ function App() {
           >
             <Route element={<DashboardLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
-              {/* Здесь можно добавить другие маршруты для администратора */}
+              <Route path="/admin/reports" element={<AdminReportsPage />} />
+              <Route path="/admin/reports/:reportId" element={<AdminReportsPage />} />
             </Route>
           </Route>
 
@@ -78,7 +82,7 @@ function App() {
             <Route element={<DashboardLayout />}>
               <Route path="/manager" element={<ManagerDashboard />} />
               <Route path="/manager/daily-report" element={<DailyReportPage />} />
-              {/* Здесь можно добавить другие маршруты для управляющего */}
+              <Route path="/manager/reports" element={<ManagerReportsPage />} />
             </Route>
           </Route>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Task, DailyReport, ChecklistItem } from '@/types';
 import {
@@ -14,10 +14,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/input';
 
 const DailyReportPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,9 +28,13 @@ const DailyReportPage: React.FC = () => {
   const [report, setReport] = useState<DailyReport | null>(null);
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [taskNote, setTaskNote] = useState('');
+  const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
 
-  // Получаем текущую дату в формате YYYY-MM-DD
-  const today = new Date().toISOString().split('T')[0];
+  // Получаем дату из параметров URL или используем текущую
+  const queryParams = new URLSearchParams(location.search);
+  const dateParam = queryParams.get('date');
+  const targetDate = dateParam || new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,9 +45,9 @@ const DailyReportPage: React.FC = () => {
         const tasksData = await getTasks();
         setTasks(tasksData);
 
-        // Проверяем, есть ли отчет на сегодня
+        // Проверяем, есть ли отчет на указанную дату
         if (user) {
-          const reportData = await getDailyReportByUserAndDate(user.id, today);
+          const reportData = await getDailyReportByUserAndDate(user.id, targetDate);
 
           if (reportData) {
             setReport(reportData);
@@ -48,11 +55,21 @@ const DailyReportPage: React.FC = () => {
             if (!activeTask && reportData.tasks.length > 0) {
               setActiveTask(reportData.tasks[0].taskId);
             }
+
+            // Если задача выбрана, загрузим заметки к ней
+            if (activeTask) {
+              const activeTaskData = reportData.tasks.find(task => task.taskId === activeTask);
+              if (activeTaskData?.notes) {
+                setTaskNote(activeTaskData.notes);
+              } else {
+                setTaskNote('');
+              }
+            }
           } else {
             // Создаем новый отчет, если его нет
             const newReport: Omit<DailyReport, 'id'> = {
               userId: user.id,
-              date: today,
+              date: targetDate,
               completed: false,
               tasks: tasksData.map((task) => ({
                 taskId: task.id,
@@ -82,7 +99,15 @@ const DailyReportPage: React.FC = () => {
     };
 
     loadData();
-  }, [user, today, toast, activeTask]);
+  }, [user, targetDate, toast]);
+
+  // Обновление заметок при смене активной задачи
+  useEffect(() => {
+    if (report && activeTask) {
+      const activeTaskData = report.tasks.find(task => task.taskId === activeTask);
+      setTaskNote(activeTaskData?.notes || '');
+    }
+  }, [activeTask, report]);
 
   // Получаем текущую активную задачу из отчета
   const getActiveTaskReport = () => {
@@ -158,6 +183,41 @@ const DailyReportPage: React.FC = () => {
       toast({
         title: 'Ошибка',
         description: 'Не удалось обновить отчет',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Обработчик сохранения заметок к задаче
+  const handleSaveTaskNote = async () => {
+    if (!report || !activeTask) return;
+
+    try {
+      setSaving(true);
+
+      // Обновляем заметки к задаче
+      const updatedTasks = report.tasks.map((task) =>
+        task.taskId === activeTask
+          ? { ...task, notes: taskNote }
+          : task
+      );
+
+      const updatedReport = await updateDailyReport(report.id, {
+        tasks: updatedTasks,
+      });
+
+      setReport(updatedReport);
+      toast({
+        title: 'Успешно',
+        description: 'Заметки сохранены',
+      });
+    } catch (error) {
+      console.error('Ошибка при обновлении заметок:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить заметки',
         variant: 'destructive',
       });
     } finally {
@@ -281,6 +341,36 @@ const DailyReportPage: React.FC = () => {
     }
   };
 
+  // Обработчик переоткрытия завершенного отчета
+  const handleReopenReport = async () => {
+    if (!report) return;
+
+    try {
+      setSaving(true);
+
+      const updatedReport = await updateDailyReport(report.id, {
+        completed: false,
+      });
+
+      setReport(updatedReport);
+      setIsReopenDialogOpen(false);
+
+      toast({
+        title: 'Успешно',
+        description: 'Отчет открыт для редактирования',
+      });
+    } catch (error) {
+      console.error('Ошибка при открытии отчета:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось открыть отчет',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -291,37 +381,53 @@ const DailyReportPage: React.FC = () => {
 
   const activeTaskReport = getActiveTaskReport();
   const activeTaskInfo = activeTask ? getTaskById(activeTask) : null;
+  const isCurrentDay = targetDate === new Date().toISOString().split('T')[0];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Ежедневный отчет</h1>
+          <h1 className="text-2xl font-bold">
+            {isCurrentDay ? 'Ежедневный отчет' : 'Отчет за прошлую дату'}
+          </h1>
           <p className="text-gray-500">
-            {new Date(today).toLocaleDateString('ru-RU', {
+            {new Date(targetDate).toLocaleDateString('ru-RU', {
               day: 'numeric',
               month: 'long',
               year: 'numeric',
             })}
           </p>
         </div>
-        {report && !report.completed && (
-          <Button onClick={handleCompleteReport} disabled={saving}>
-            Завершить отчет
-          </Button>
-        )}
+        <div className="flex space-x-2">
+          {report && !report.completed && (
+            <Button onClick={handleCompleteReport} disabled={saving}>
+              Завершить отчет
+            </Button>
+          )}
+          {report && report.completed && (
+            <Button variant="outline" onClick={() => setIsReopenDialogOpen(true)} disabled={saving}>
+              Дополнить отчет
+            </Button>
+          )}
+        </div>
       </div>
 
-      {report?.completed ? (
+      {report?.completed && !isReopenDialogOpen ? (
         <Card>
           <CardHeader>
             <CardTitle>Отчет завершен</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>Ваш отчет за сегодня уже завершен. Вы можете просмотреть его историю в разделе "История отчетов".</p>
-            <Button className="mt-4" onClick={() => navigate('/manager')}>
-              Вернуться на главную
-            </Button>
+            <p>Ваш отчет за {new Date(targetDate).toLocaleDateString('ru-RU')} завершен.</p>
+            <p className="mt-2">Чтобы внести дополнительные изменения, нажмите кнопку "Дополнить отчет".</p>
+            <div className="mt-4 flex space-x-4">
+              <Button variant="outline" onClick={() => navigate('/manager/reports')}>
+                История отчетов
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/manager')}>
+                Вернуться на главную
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -400,10 +506,13 @@ const DailyReportPage: React.FC = () => {
                     <Tabs defaultValue="checklist">
                       <TabsList>
                         <TabsTrigger value="checklist">Чек-лист</TabsTrigger>
+                        <TabsTrigger value="notes">Заметки</TabsTrigger>
                       </TabsList>
+
+                      {/* Вкладка с чек-листом */}
                       <TabsContent value="checklist">
                         <div className="space-y-4">
-                          {activeTaskReport.status !== 'not_started' && (
+                          {(activeTaskReport.status !== 'not_started' || report.completed === false) && (
                             <div className="flex space-x-2">
                               <Input
                                 placeholder="Добавить новый пункт..."
@@ -429,7 +538,6 @@ const DailyReportPage: React.FC = () => {
                                     id={item.id}
                                     checked={item.completed}
                                     onCheckedChange={(checked) => handleToggleChecklistItem(item.id, !!checked)}
-                                    disabled={activeTaskReport.status === 'completed'}
                                   />
                                   <label
                                     htmlFor={item.id}
@@ -451,6 +559,21 @@ const DailyReportPage: React.FC = () => {
                           </div>
                         </div>
                       </TabsContent>
+
+                      {/* Вкладка с заметками */}
+                      <TabsContent value="notes">
+                        <div className="space-y-4">
+                          <textarea
+                            className="w-full min-h-[150px] p-3 border rounded-md"
+                            placeholder="Введите заметки к задаче..."
+                            value={taskNote}
+                            onChange={(e) => setTaskNote(e.target.value)}
+                          />
+                          <Button onClick={handleSaveTaskNote} disabled={saving}>
+                            Сохранить заметки
+                          </Button>
+                        </div>
+                      </TabsContent>
                     </Tabs>
                   </div>
                 </CardContent>
@@ -465,6 +588,26 @@ const DailyReportPage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* Диалог подтверждения для переоткрытия отчета */}
+      <Dialog open={isReopenDialogOpen} onOpenChange={setIsReopenDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Дополнение отчета</DialogTitle>
+            <DialogDescription>
+              Вы собираетесь дополнить завершенный отчет. Это позволит вам внести дополнительные изменения.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReopenDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleReopenReport} disabled={saving}>
+              Дополнить отчет
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
