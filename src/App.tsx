@@ -16,11 +16,13 @@ import AdminReportsPage from '@/pages/admin/ReportsPage';
 
 // Импорт страниц для администратора
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminReportDetailsPage from '@/pages/admin/ReportDetailsPage';
 
 // Импорт страниц для управляющего
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
 import DailyReportPage from '@/pages/manager/DailyReportPage';
 import ManagerReportsPage from '@/pages/manager/ReportsPage';
+import ManagerReportDetailsPage from '@/pages/manager/ReportDetailsPage';
 
 function App() {
   useEffect(() => {
@@ -49,8 +51,9 @@ function App() {
               <Route path="/superadmin" element={<SuperAdminDashboard />} />
               <Route path="/superadmin/users" element={<UsersManagementPage />} />
               <Route path="/superadmin/tasks" element={<TasksManagementPage />} />
-              <Route path="/superadmin/reports" element={<AdminReportsPage />} />
+              <Route path="/superadmin/reports/details/:reportId" element={<AdminReportDetailsPage />} />
               <Route path="/superadmin/reports/:reportId" element={<AdminReportsPage />} />
+              <Route path="/superadmin/reports" element={<AdminReportsPage />} />
             </Route>
           </Route>
 
@@ -65,8 +68,9 @@ function App() {
           >
             <Route element={<DashboardLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/reports" element={<AdminReportsPage />} />
+              <Route path="/admin/reports/details/:reportId" element={<AdminReportDetailsPage />} />
               <Route path="/admin/reports/:reportId" element={<AdminReportsPage />} />
+              <Route path="/admin/reports" element={<AdminReportsPage />} />
             </Route>
           </Route>
 
@@ -83,6 +87,7 @@ function App() {
               <Route path="/manager" element={<ManagerDashboard />} />
               <Route path="/manager/daily-report" element={<DailyReportPage />} />
               <Route path="/manager/reports" element={<ManagerReportsPage />} />
+              <Route path="/manager/reports/:reportId" element={<ManagerReportDetailsPage />} />
             </Route>
           </Route>
 

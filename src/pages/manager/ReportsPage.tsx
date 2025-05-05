@@ -165,9 +165,20 @@ const ManagerReportsPage: React.FC = () => {
                                     asChild
                                 >
                                   <Link to={`/manager/daily-report?date=${report.date}`}>
-                                    {report.completed ? 'Просмотр' : 'Продолжить'}
+                                    {report.completed ? 'Редактировать' : 'Продолжить'}
                                   </Link>
                                 </Button>
+                                {report.completed && (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    asChild
+                                  >
+                                    <Link to={`/manager/reports/${report.id}`}>
+                                      Просмотр
+                                    </Link>
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>

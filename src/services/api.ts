@@ -33,7 +33,7 @@ export const initializeData = (): void => {
       {
         id: '1',
         username: 'superadmin',
-        password: 'password123', // В реальном приложении должен быть хешированный пароль
+        password: 'qwefscaghev12', // В реальном приложении должен быть хешированный пароль
         role: UserRole.SUPER_ADMIN,
         fullName: 'Главный Администратор',
         email: 'superadmin@example.com',
@@ -41,19 +41,19 @@ export const initializeData = (): void => {
       },
       {
         id: '2',
-        username: 'admin',
-        password: 'password123',
+        username: 'adminokk',
+        password: 'okk2025',
         role: UserRole.ADMIN,
-        fullName: 'Администратор',
+        fullName: 'ОКК',
         email: 'admin@example.com',
         createdAt: new Date().toISOString(),
       },
       {
         id: '3',
-        username: 'manager',
-        password: 'password123',
+        username: 'managersiz',
+        password: 'siz2025',
         role: UserRole.MANAGER,
-        fullName: 'Управляющий',
+        fullName: 'Сизиков Игорь',
         email: 'manager@example.com',
         createdAt: new Date().toISOString(),
       },

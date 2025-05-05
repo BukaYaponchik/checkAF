@@ -138,7 +138,7 @@ const ReportsPage: React.FC = () => {
               </p>
             </div>
             <Button variant="outline" asChild>
-              <Link to="/admin/reports">Назад к списку</Link>
+              <Link to={user?.role === UserRole.SUPER_ADMIN ? '/superadmin/reports' : '/admin/reports'}>Назад к списку</Link>
             </Button>
           </div>
 
@@ -297,7 +297,7 @@ const ReportsPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Button variant="outline" size="sm" asChild>
-                              <Link to={`/admin/reports/${report.id}`}>Подробнее</Link>
+                              <Link to={`${user?.role === UserRole.SUPER_ADMIN ? '/superadmin' : '/admin'}/reports/details/${report.id}`}>Подробнее</Link>
                             </Button>
                           </TableCell>
                         </TableRow>
