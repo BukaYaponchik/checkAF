@@ -24,41 +24,57 @@ const setItem = <T>(key: string, value: T): void => {
   }
 };
 
+// Функция для сброса данных приложения
+export const resetData = (): void => {
+  console.log('Сброс всех данных и реинициализация приложения');
+  localStorage.removeItem('initialized');
+  localStorage.removeItem('users');
+  localStorage.removeItem('tasks');
+  localStorage.removeItem('dailyReports');
+  initializeData();
+};
+
 // Инициализация данных
 export const initializeData = (): void => {
-  // Проверяем, инициализированы ли данные
-  if (!localStorage.getItem('initialized')) {
-    // Создаем суперадмина
-    const defaultUsers: User[] = [
-      {
-        id: '1',
-        username: 'superadmin',
-        password: 'qwefscaghev12', // В реальном приложении должен быть хешированный пароль
-        role: UserRole.SUPER_ADMIN,
-        fullName: 'Главный Администратор',
-        email: 'superadmin@example.com',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        username: 'adminokk',
-        password: 'okk2025',
-        role: UserRole.ADMIN,
-        fullName: 'ОКК',
-        email: 'admin@example.com',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: '3',
-        username: 'managersiz',
-        password: 'siz2025',
-        role: UserRole.MANAGER,
-        fullName: 'Сизиков Игорь',
-        email: 'manager@example.com',
-        createdAt: new Date().toISOString(),
-      },
-    ];
+  // Всегда инициализируем пользователей, даже если данные уже существуют
+  console.log('Инициализация данных приложения');
 
+  // Создаем суперадмина
+  const defaultUsers: User[] = [
+    {
+      id: '1',
+      username: 'superadmin',
+      password: 'qwefscaghev12', // В реальном приложении должен быть хешированный пароль
+      role: UserRole.SUPER_ADMIN,
+      fullName: 'Главный Администратор',
+      email: 'superadmin@example.com',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: '2',
+      username: 'adminokk',
+      password: 'okk2025',
+      role: UserRole.ADMIN,
+      fullName: 'ОКК',
+      email: 'admin@example.com',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: '3',
+      username: 'managersiz',
+      password: 'siz2025',
+      role: UserRole.MANAGER,
+      fullName: 'Сизиков Игорь',
+      email: 'manager@example.com',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  // Если данные уже инициализированы, обновляем только пользователей
+  if (localStorage.getItem('initialized')) {
+    setItem('users', defaultUsers);
+  } else {
+    // Иначе инициализируем все данные
     const defaultTasks: Task[] = [
       {
         id: '1',

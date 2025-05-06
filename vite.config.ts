@@ -10,4 +10,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    force: true, // Принудительная переоптимизация зависимостей
+  },
+  server: {
+    watch: {
+      usePolling: true, // Использовать polling для обнаружения изменений файлов
+    },
+  },
 });
