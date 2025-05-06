@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const DailyReportPage: React.FC = () => {
   const { user } = useAuth();
@@ -512,7 +512,7 @@ const DailyReportPage: React.FC = () => {
                       {/* Вкладка с чек-листом */}
                       <TabsContent value="checklist">
                         <div className="space-y-4">
-                          {(activeTaskReport.status !== 'not_started' || report.completed === false) && (
+                          {(activeTaskReport.status !== 'not_started' || (report && report.completed === false)) && (
                             <div className="flex space-x-2">
                               <Input
                                 placeholder="Добавить новый пункт..."
@@ -563,8 +563,8 @@ const DailyReportPage: React.FC = () => {
                       {/* Вкладка с заметками */}
                       <TabsContent value="notes">
                         <div className="space-y-4">
-                          <textarea
-                            className="w-full min-h-[150px] p-3 border rounded-md"
+                          <Textarea
+                            className="min-h-[150px]"
                             placeholder="Введите заметки к задаче..."
                             value={taskNote}
                             onChange={(e) => setTaskNote(e.target.value)}
