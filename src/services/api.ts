@@ -1,341 +1,251 @@
 import { type User, UserRole, type Task, type DailyReport, type LoginCredentials } from '../types';
 
-// В реальном приложении данные будут храниться на сервере
-// Здесь мы используем localStorage для демонстрации
+// Базовый URL для API запросов
+const API_BASE_URL = '/api';
 
-// Вспомогательные функции для работы с localStorage
-const getItem = <T>(key: string, defaultValue: T): T => {
-  try {
-    const item = localStorage.getItem(key);
-    console.log(`Чтение из localStorage: ключ=${key}, значение=${item ? 'существует' : 'не существует'}`);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    console.error(`Ошибка при чтении из localStorage: ключ=${key}`, error);
-    return defaultValue;
-  }
-};
+// Функция для выполнения HTTP запросов
+const fetchWithTimeout = async <T>(
+    url: string,
+    options: RequestInit = {},
+    timeout = 10000
+): Promise<T> => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
 
-const setItem = <T>(key: string, value: T): void => {
   try {
-    console.log(`Запись в localStorage: ключ=${key}`, value);
-    localStorage.setItem(key, JSON.stringify(value));
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    clearTimeout(id);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    return await response.json() as T;
   } catch (error) {
-    console.error(`Ошибка при записи в localStorage: ключ=${key}`, error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Запрос был отменен из-за таймаута');
+      }
+      throw error;
+    }
+    throw new Error('Произошла неизвестная ошибка при запросе');
   }
 };
 
 // Функция для сброса данных приложения
-export const resetData = (): void => {
+export const resetData = async (): Promise<void> => {
   console.log('Сброс всех данных и реинициализация приложения');
-  localStorage.removeItem('initialized');
-  localStorage.removeItem('users');
-  localStorage.removeItem('tasks');
-  localStorage.removeItem('dailyReports');
-  initializeData();
+
+  try {
+    await fetchWithTimeout<{ success: boolean, message: string }>(
+        `${API_BASE_URL}/reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+    );
+  } catch (error) {
+    console.error('Ошибка при сбросе данных:', error);
+  }
 };
 
-// Инициализация данных
+// Инициализация данных (пустая функция, так как данные инициализируются на сервере)
 export const initializeData = (): void => {
-  // Всегда инициализируем пользователей, даже если данные уже существуют
-  console.log('Инициализация данных приложения');
-
-  // Создаем суперадмина
-  const defaultUsers: User[] = [
-    {
-      id: '1',
-      username: 'superadmin',
-      password: 'qwefscaghev12', // В реальном приложении должен быть хешированный пароль
-      role: UserRole.SUPER_ADMIN,
-      fullName: 'Главный Администратор',
-      email: 'superadmin@example.com',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      username: 'adminokk',
-      password: 'okk2025',
-      role: UserRole.ADMIN,
-      fullName: 'ОКК',
-      email: 'admin@example.com',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      username: 'managersiz',
-      password: 'siz2025',
-      role: UserRole.MANAGER,
-      fullName: 'Сизиков Игорь',
-      email: 'manager@example.com',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
-  // Если данные уже инициализированы, обновляем только пользователей
-  if (localStorage.getItem('initialized')) {
-    setItem('users', defaultUsers);
-  } else {
-    // Иначе инициализируем все данные
-    const defaultTasks: Task[] = [
-      {
-        id: '1',
-        title: 'Проверка счетов по юр. лицам',
-        description: 'Проверить все счета юридических лиц за текущий месяц',
-        required: true,
-        order: 1,
-      },
-      {
-        id: '2',
-        title: 'Обработка новых заявок',
-        description: 'Просмотреть и обработать новые заявки от клиентов',
-        required: true,
-        order: 2,
-      },
-    ];
-
-    setItem('users', defaultUsers);
-    setItem('tasks', defaultTasks);
-    setItem('dailyReports', []);
-    setItem('initialized', true);
-  }
+  console.log('Данные инициализируются на сервере');
 };
 
 // Функции для работы с пользователями
 export const getUsers = async (): Promise<User[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(getItem<User[]>('users', []));
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<User[]>(`${API_BASE_URL}/users`);
+  } catch (error) {
+    console.error('Ошибка при получении списка пользователей:', error);
+    return [];
+  }
 };
 
 export const getUserById = async (id: string): Promise<User | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const users = getItem<User[]>('users', []);
-      const user = users.find((user) => user.id === id) || null;
-      resolve(user);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<User>(`${API_BASE_URL}/users/${id}`);
+  } catch (error) {
+    console.error(`Ошибка при получении пользователя с ID ${id}:`, error);
+    return null;
+  }
 };
 
 export const createUser = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<User> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const users = getItem<User[]>('users', []);
-      const newUser: User = {
-        ...userData,
-        id: Math.random().toString(36).substring(2, 11),
-        createdAt: new Date().toISOString(),
-      };
-
-      users.push(newUser);
-      setItem('users', users);
-      resolve(newUser);
-    }, 300);
+  return await fetchWithTimeout<User>(`${API_BASE_URL}/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
   });
 };
 
 export const updateUser = async (id: string, userData: Partial<User>): Promise<User | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const users = getItem<User[]>('users', []);
-      const userIndex = users.findIndex((user) => user.id === id);
-
-      if (userIndex === -1) {
-        resolve(null);
-        return;
-      }
-
-      const updatedUser = { ...users[userIndex], ...userData };
-      users[userIndex] = updatedUser;
-      setItem('users', users);
-      resolve(updatedUser);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<User>(`${API_BASE_URL}/users/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+  } catch (error) {
+    console.error(`Ошибка при обновлении пользователя с ID ${id}:`, error);
+    return null;
+  }
 };
 
 export const deleteUser = async (id: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const users = getItem<User[]>('users', []);
-      const filteredUsers = users.filter((user) => user.id !== id);
-
-      if (filteredUsers.length === users.length) {
-        resolve(false);
-        return;
-      }
-
-      setItem('users', filteredUsers);
-      resolve(true);
-    }, 300);
-  });
+  try {
+    const response = await fetchWithTimeout<{ success: boolean }>(`${API_BASE_URL}/users/${id}`, {
+      method: 'DELETE',
+    });
+    return response.success;
+  } catch (error) {
+    console.error(`Ошибка при удалении пользователя с ID ${id}:`, error);
+    return false;
+  }
 };
 
 // Функции для аутентификации
 export const login = async (credentials: LoginCredentials): Promise<{ user: User; token: string } | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const users = getItem<User[]>('users', []);
-      const user = users.find(
-          (user) => user.username === credentials.username && user.password === credentials.password
-      );
-
-      if (!user) {
-        resolve(null);
-        return;
-      }
-
-      // Обновляем время последнего входа
-      updateUser(user.id, { lastLogin: new Date().toISOString() });
-
-      // В реальном приложении здесь будет генерация JWT токена
-      const token = btoa(JSON.stringify({ userId: user.id, role: user.role, time: Date.now() }));
-      resolve({ user, token });
-    }, 500);
-  });
+  try {
+    return await fetchWithTimeout<{ user: User; token: string }>(`${API_BASE_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+  } catch (error) {
+    console.error('Ошибка при аутентификации:', error);
+    return null;
+  }
 };
 
 // Функции для работы с задачами
 export const getTasks = async (): Promise<Task[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(getItem<Task[]>('tasks', []));
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<Task[]>(`${API_BASE_URL}/tasks`);
+  } catch (error) {
+    console.error('Ошибка при получении списка задач:', error);
+    return [];
+  }
 };
 
 export const getTaskById = async (id: string): Promise<Task | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const tasks = getItem<Task[]>('tasks', []);
-      const task = tasks.find((task) => task.id === id) || null;
-      resolve(task);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<Task>(`${API_BASE_URL}/tasks/${id}`);
+  } catch (error) {
+    console.error(`Ошибка при получении задачи с ID ${id}:`, error);
+    return null;
+  }
 };
 
 export const createTask = async (taskData: Omit<Task, 'id'>): Promise<Task> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const tasks = getItem<Task[]>('tasks', []);
-      const newTask: Task = {
-        ...taskData,
-        id: Math.random().toString(36).substring(2, 11),
-      };
-
-      tasks.push(newTask);
-      setItem('tasks', tasks);
-      resolve(newTask);
-    }, 300);
+  return await fetchWithTimeout<Task>(`${API_BASE_URL}/tasks`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(taskData),
   });
 };
 
 export const updateTask = async (id: string, taskData: Partial<Task>): Promise<Task | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const tasks = getItem<Task[]>('tasks', []);
-      const taskIndex = tasks.findIndex((task) => task.id === id);
-
-      if (taskIndex === -1) {
-        resolve(null);
-        return;
-      }
-
-      const updatedTask = { ...tasks[taskIndex], ...taskData };
-      tasks[taskIndex] = updatedTask;
-      setItem('tasks', tasks);
-      resolve(updatedTask);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<Task>(`${API_BASE_URL}/tasks/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(taskData),
+    });
+  } catch (error) {
+    console.error(`Ошибка при обновлении задачи с ID ${id}:`, error);
+    return null;
+  }
 };
 
 export const deleteTask = async (id: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const tasks = getItem<Task[]>('tasks', []);
-      const filteredTasks = tasks.filter((task) => task.id !== id);
-
-      if (filteredTasks.length === tasks.length) {
-        resolve(false);
-        return;
-      }
-
-      setItem('tasks', filteredTasks);
-      resolve(true);
-    }, 300);
-  });
+  try {
+    const response = await fetchWithTimeout<{ success: boolean }>(`${API_BASE_URL}/tasks/${id}`, {
+      method: 'DELETE',
+    });
+    return response.success;
+  } catch (error) {
+    console.error(`Ошибка при удалении задачи с ID ${id}:`, error);
+    return false;
+  }
 };
 
 // Функции для работы с ежедневными отчетами
 export const getDailyReports = async (): Promise<DailyReport[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(getItem<DailyReport[]>('dailyReports', []));
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<DailyReport[]>(`${API_BASE_URL}/daily-reports`);
+  } catch (error) {
+    console.error('Ошибка при получении списка отчетов:', error);
+    return [];
+  }
 };
 
 export const getDailyReportsByUserId = async (userId: string): Promise<DailyReport[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const reports = getItem<DailyReport[]>('dailyReports', []);
-      const userReports = reports.filter((report) => report.userId === userId);
-      resolve(userReports);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<DailyReport[]>(`${API_BASE_URL}/daily-reports/user/${userId}`);
+  } catch (error) {
+    console.error(`Ошибка при получении отчетов для пользователя с ID ${userId}:`, error);
+    return [];
+  }
 };
 
 export const getDailyReportById = async (id: string): Promise<DailyReport | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const reports = getItem<DailyReport[]>('dailyReports', []);
-      const report = reports.find((report) => report.id === id) || null;
-      resolve(report);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<DailyReport>(`${API_BASE_URL}/daily-reports/${id}`);
+  } catch (error) {
+    console.error(`Ошибка при получении отчета с ID ${id}:`, error);
+    return null;
+  }
 };
 
 export const getDailyReportByUserAndDate = async (userId: string, date: string): Promise<DailyReport | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const reports = getItem<DailyReport[]>('dailyReports', []);
-      const report = reports.find((report) => report.userId === userId && report.date === date) || null;
-      resolve(report);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<DailyReport>(`${API_BASE_URL}/daily-reports/user/${userId}/date/${date}`);
+  } catch (error) {
+    console.error(`Ошибка при получении отчета для пользователя с ID ${userId} за дату ${date}:`, error);
+    return null;
+  }
 };
 
 export const createDailyReport = async (reportData: Omit<DailyReport, 'id'>): Promise<DailyReport> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const reports = getItem<DailyReport[]>('dailyReports', []);
-      const newReport: DailyReport = {
-        ...reportData,
-        id: Math.random().toString(36).substring(2, 11),
-      };
-
-      reports.push(newReport);
-      setItem('dailyReports', reports);
-      resolve(newReport);
-    }, 300);
+  return await fetchWithTimeout<DailyReport>(`${API_BASE_URL}/daily-reports`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(reportData),
   });
 };
 
 export const updateDailyReport = async (id: string, reportData: Partial<DailyReport>): Promise<DailyReport | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const reports = getItem<DailyReport[]>('dailyReports', []);
-      const reportIndex = reports.findIndex((report) => report.id === id);
-
-      if (reportIndex === -1) {
-        resolve(null);
-        return;
-      }
-
-      const updatedReport = { ...reports[reportIndex], ...reportData };
-      reports[reportIndex] = updatedReport;
-      setItem('dailyReports', reports);
-      resolve(updatedReport);
-    }, 300);
-  });
+  try {
+    return await fetchWithTimeout<DailyReport>(`${API_BASE_URL}/daily-reports/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(reportData),
+    });
+  } catch (error) {
+    console.error(`Ошибка при обновлении отчета с ID ${id}:`, error);
+    return null;
+  }
 };
