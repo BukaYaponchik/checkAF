@@ -17,5 +17,13 @@ export default defineConfig({
     watch: {
       usePolling: true, // Использовать polling для обнаружения изменений файлов
     },
+    proxy: {
+      // Прокси для всех запросов, начинающихся с /api
+      '/api': {
+        target: 'http://localhost:3000', // URL вашего бэкенд-сервера
+        changeOrigin: true, // Необходимо для виртуальных хостов
+        secure: false, // Если ваш бэкенд-сервер работает по HTTP
+      },
+    },
   },
 });
