@@ -53,7 +53,7 @@ function App() {
                             <Route path="/superadmin/users" element={<UsersManagementPage />} />
                             <Route path="/superadmin/tasks" element={<TasksManagementPage />} />
                             <Route path="/superadmin/reports/details/:reportId" element={<AdminReportDetailsPage />} />
-                            <Route path="/superadmin/reports/:reportId" element={<AdminReportsPage />} />
+                            <Route path="/superadmin/reports/view/:reportId" element={<AdminReportsPage />} />
                             <Route path="/superadmin/reports" element={<AdminReportsPage />} />
                         </Route>
                     </Route>
@@ -71,7 +71,7 @@ function App() {
                             <Route path="/admin" element={<AdminDashboard />} />
                             <Route path="/admin/managers" element={<ManagersPage />} />
                             <Route path="/admin/reports/details/:reportId" element={<AdminReportDetailsPage />} />
-                            <Route path="/admin/reports/:reportId" element={<AdminReportsPage />} />
+                            <Route path="/admin/reports/view/:reportId" element={<AdminReportsPage />} />
                             <Route path="/admin/reports" element={<AdminReportsPage />} />
                         </Route>
                     </Route>

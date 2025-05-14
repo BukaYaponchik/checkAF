@@ -9,7 +9,7 @@
     "lint": "npx eslint . && tsc --noEmit",
     "format": "npx prettier --write .",
     "preview": "vite preview",
-    "start": "node server.cjs"
+    "start": "node server.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
